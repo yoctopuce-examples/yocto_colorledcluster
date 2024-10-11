@@ -13,9 +13,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
-from yoctopuce.yocto_api import YAPI, YRefParam
+from yoctopuce.yocto_api import YAPI, YRefParam, YHub
 from yoctopuce.yocto_colorledcluster import YColorLedCluster
-from yoctopuce.yocto_network import YNetwork
 
 _LOGGER = logging.getLogger(DOMAIN)
 
@@ -49,8 +48,15 @@ def validate_config(url: str) -> dict:
         leds.append(hwid)
         l = l.nextColorLedCluster()
     # fixme handle multiples hub and usb
-    ynet = YNetwork.FirstNetwork()
-    return {"leds": leds, "hub": ynet.get_logicalName()}
+
+    serial = "usb"
+    hub = YHub.FirstHubInUse()
+    while hub is not None:
+        if hub.get_registeredUrl() == url:
+            serial = hub.get_serialNumber()
+            break
+        hub.nextHubInUse()
+    return {"leds": leds, "hub": serial}
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):
