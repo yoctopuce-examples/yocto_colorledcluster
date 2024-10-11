@@ -1,0 +1,17 @@
+{
+    "domain":"yocto_colorledcluster",
+    "name":"Yocto-ColorLedCluster",
+    "codeowners": [
+      "@yoctopuce"
+    ],
+    "config_flow": true,
+    "dependencies": [],
+    "issue_tracker": "https://github.com/yoctopuce-examples/yocto_colorledcluster/issues",
+    "documentation": "https://github.com/yoctopuce-examples/yocto_colorledcluster/hacs_test",
+    "homekit": {},
+    "iot_class": "local_polling",
+    "requirements": ["yoctopuce==2.0.62875"],
+    "version":"1.0.0",
+    "ssdp": [],
+    "zeroconf": []
+}
