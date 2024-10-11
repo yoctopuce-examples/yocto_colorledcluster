@@ -57,22 +57,6 @@ async def async_setup_entry(
     return True
 
 
-async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
-) -> None:
-    """Set up the Godox Light platform."""
-    # Add devices
-    _LOGGER.info(pformat(config))
-
-    light = {"name": config[CONF_NAME], "url": config[CONF_URL]}
-    yl = YoctoColorLedLight(light)
-    await yl.async_setupYLib(hass)
-    add_entities([yl])
-
-
 class YoctoColorLedLight(LightEntity):
     """Representation of an Yocto-Color-V2 Light."""
 
@@ -82,7 +66,7 @@ class YoctoColorLedLight(LightEntity):
         self._is_on = False
         self._color_mode = ColorMode.RGB
         self._rgb_color = (255, 255, 255)
-        # self._hs_color = (255, 255)
+        self.unique_id = hwid
         self._brightness = 0
 
     @property
