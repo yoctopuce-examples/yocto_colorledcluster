@@ -3,4 +3,4 @@
 Home Assistant integration for the Yocto-Color-V2, Yocto-MaxiBuzzer, and Yocto-MaxiKnob devices.
 It will create an entity of type Light and allow to change the color of the controlled LEDs.
 
-Read the full article on our web site:
+Read the full article on our web site: https://www.yoctopuce.com/EN/article/yocto-colorledcluster-integration-for-home-assistant
