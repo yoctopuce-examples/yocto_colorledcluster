@@ -64,8 +64,9 @@ class YoctoColorLedLight(LightEntity):
         self._hub = hub
         self._name = hwid
         self._is_on = False
-        self._color_mode = ColorMode.RGB
-        self._rgb_color = (255, 255, 255)
+        self._color_mode = ColorMode.HS
+        self._hs_color = (0, 0)
+        self._rgb_color = (0, 0, 0)
         self.unique_id = hwid
         self._brightness = 0
 
@@ -97,7 +98,7 @@ class YoctoColorLedLight(LightEntity):
 
     @property
     def supported_color_modes(self):
-        return [ColorMode.RGB]
+        return [ColorMode.HS]
 
     @property
     def is_on(self):
@@ -105,14 +106,24 @@ class YoctoColorLedLight(LightEntity):
 
     def set_on_off(self) -> None:
         if self._is_on:
-            _LOGGER.debug(self._rgb_color)
-            color = (
-                (self._rgb_color[0] << 16)
-                + (self._rgb_color[1] << 8)
-                + self._rgb_color[2]
-            )
-            self._hub.set_color(self._name, color)
-            self._is_on = True
+            if self._color_mode == ColorMode.HS:
+                _LOGGER.debug(self._hs_color)
+                hue = int(self._hs_color[0] * 255 / 360)
+                sat = int(self._hs_color[1] * 255 / 100)
+                lum = int(self._brightness / 2)
+                color = (hue << 16) + (sat << 8) + lum
+                self._hub.set_hsl_color(self._name, color)
+                self._is_on = True
+            else:
+                _LOGGER.debug(self._rgb_color)
+
+                color = (
+                    (self._rgb_color[0] << 16)
+                    + (self._rgb_color[1] << 8)
+                    + self._rgb_color[2]
+                )
+                self._hub.set_color(self._name, color)
+                self._is_on = True
         else:
             self._hub.set_color(self._name, 0)
             self._is_on = False
@@ -133,18 +144,22 @@ class YoctoColorLedLight(LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         self._is_on = True
-        # Vérifier si un mode de couleur a été spécifié
         if ATTR_RGB_COLOR in kwargs:
             self._rgb_color = kwargs[ATTR_RGB_COLOR]
         if ATTR_HS_COLOR in kwargs:
             self._hs_color = kwargs[ATTR_HS_COLOR]
+            _LOGGER.info(
+                "Target is H=%f S=%f (l=%x)"
+                % (self._hs_color[0], self._hs_color[1], self._brightness)
+            )
         if ATTR_BRIGHTNESS in kwargs:
+            _LOGGER.info(
+                "Target is (H=%f S=%f) l=%x"
+                % (self._hs_color[0], self._hs_color[1], self._brightness)
+            )
             self._brightness = kwargs[ATTR_BRIGHTNESS]
         await self.hass.async_add_executor_job(self.set_on_off)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self._is_on = False
         await self.hass.async_add_executor_job(self.set_on_off)
-
-    # async def async_update(self) -> None:
-    # await self.hass.async_add_executor_job(self.update_state)
