@@ -55,7 +55,7 @@ def validate_config(url: str) -> dict:
         if hub.get_registeredUrl() == url:
             serial = hub.get_serialNumber()
             break
-        hub.nextHubInUse()
+        hub = hub.nextHubInUse()
     return {"leds": leds, "hub": serial}
 
 
