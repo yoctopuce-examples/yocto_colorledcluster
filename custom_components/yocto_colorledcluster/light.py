@@ -26,8 +26,8 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from . import HubConfigEntry
 from .hub import Hub
 from .const import DOMAIN
-from yoctopuce.yocto_api import *
-from yoctopuce.yocto_colorledcluster import *
+from yoctolib.yocto_api_aio import *
+from yoctolib.yocto_colorledcluster_aio import *
 
 _LOGGER = logging.getLogger(DOMAIN)
 
@@ -104,7 +104,7 @@ class YoctoColorLedLight(LightEntity):
     def is_on(self):
         return self._is_on
 
-    def set_on_off(self) -> None:
+    async def set_on_off(self) -> None:
         if self._is_on:
             if self._color_mode == ColorMode.HS:
                 _LOGGER.debug(self._hs_color)
@@ -112,7 +112,7 @@ class YoctoColorLedLight(LightEntity):
                 sat = int(self._hs_color[1] * 255 / 100)
                 lum = int(self._brightness / 2)
                 color = (hue << 16) + (sat << 8) + lum
-                self._hub.set_hsl_color(self._name, color)
+                await self._hub.set_hsl_color(self._name, color)
                 self._is_on = True
             else:
                 _LOGGER.debug(self._rgb_color)
@@ -122,10 +122,10 @@ class YoctoColorLedLight(LightEntity):
                     + (self._rgb_color[1] << 8)
                     + self._rgb_color[2]
                 )
-                self._hub.set_color(self._name, color)
+                await self._hub.set_color(self._name, color)
                 self._is_on = True
         else:
-            self._hub.set_color(self._name, 0)
+            await self._hub.set_color(self._name, 0)
             self._is_on = False
 
     def update_state_dbg(self) -> None:
@@ -158,8 +158,8 @@ class YoctoColorLedLight(LightEntity):
                 % (self._hs_color[0], self._hs_color[1], self._brightness)
             )
             self._brightness = kwargs[ATTR_BRIGHTNESS]
-        await self.hass.async_add_executor_job(self.set_on_off)
+        await self.set_on_off()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self._is_on = False
-        await self.hass.async_add_executor_job(self.set_on_off)
+        await self.set_on_off()

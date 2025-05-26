@@ -13,8 +13,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
-from yoctopuce.yocto_api import YAPI, YRefParam, YHub
-from yoctopuce.yocto_colorledcluster import YColorLedCluster
+from yoctolib.yocto_api_aio import YAPI, YRefParam, YHub
+from yoctolib.yocto_colorledcluster_aio import YColorLedCluster
 
 _LOGGER = logging.getLogger(DOMAIN)
 
@@ -26,15 +26,15 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-def validate_config(url: str) -> dict:
+async def validate_config(url: str) -> dict:
     _LOGGER.info("Use Yoctolib version %s" % YAPI.GetAPIVersion())
     errmsg = YRefParam()
     _LOGGER.debug("Register hub %s", url)
-    yres = YAPI.TestHub(url, 5000, errmsg)
+    yres = await YAPI.TestHub(url, 5000, errmsg)
     if yres != YAPI.SUCCESS:
         return {"error": errmsg.value}
 
-    yres = YAPI.RegisterHub(url, errmsg)
+    yres = await YAPI.RegisterHub(url, errmsg)
     if yres != YAPI.SUCCESS:
         return {"error": errmsg.value}
     leds = []
@@ -43,17 +43,17 @@ def validate_config(url: str) -> dict:
     )
     l = YColorLedCluster.FirstColorLedCluster()
     while l is not None:
-        hwid = l.get_hardwareId()
+        hwid = await l.get_hardwareId()
         _LOGGER.debug("- %s", hwid)
         leds.append(hwid)
         l = l.nextColorLedCluster()
     # fixme handle multiples hub and usb
 
-    serial = "usb"
+    serial = ""
     hub = YHub.FirstHubInUse()
     while hub is not None:
-        if hub.get_registeredUrl() == url:
-            serial = hub.get_serialNumber()
+        if await hub.get_registeredUrl() == url:
+            serial = await hub.get_serialNumber()
             break
         hub = hub.nextHubInUse()
     return {"leds": leds, "hub": serial}
@@ -71,9 +71,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                res = await self.hass.async_add_executor_job(
-                    validate_config, user_input[CONF_URL]
-                )
+                res = await validate_config(user_input[CONF_URL])
                 if "error" in res:
                     errors["base"] = res["error"]
                 elif len(res["leds"]) > 0:
