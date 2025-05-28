@@ -10,8 +10,8 @@
     "documentation": "https://github.com/yoctopuce-examples/yocto_colorledcluster/",
     "homekit": {},
     "iot_class": "local_polling",
-    "requirements": ["yoctolib==2.1.6832"],
-    "version":"1.1.0",
+    "requirements": ["yoctolib==2.1.7046"],
+    "version":"1.1.1",
     "ssdp": [],
     "zeroconf": []
 }
