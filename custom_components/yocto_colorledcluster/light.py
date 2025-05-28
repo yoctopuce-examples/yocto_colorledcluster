@@ -6,6 +6,8 @@ import logging
 from pprint import pformat
 
 import voluptuous as vol
+from yoctolib.yocto_api_aio import *
+from yoctolib.yocto_colorledcluster_aio import *
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -21,13 +23,10 @@ from homeassistant.core import HomeAssistant
 # Import the device class from the component that you want to support
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from . import HubConfigEntry
-from .hub import Hub
 from .const import DOMAIN
-from yoctolib.yocto_api_aio import *
-from yoctolib.yocto_colorledcluster_aio import *
+from .hub import Hub
 
 _LOGGER = logging.getLogger(DOMAIN)
 
@@ -127,20 +126,6 @@ class YoctoColorLedLight(LightEntity):
         else:
             await self._hub.set_color(self._name, 0)
             self._is_on = False
-
-    def update_state_dbg(self) -> None:
-        _LOGGER.info("update led status")
-        if self._leds is not None and self._leds.isOnline():
-            leds = self._leds.get_rgbColorArray(0, 1)
-            if leds[0] != 0:
-                self._is_on = True
-            r = leds[0] >> 16
-            g = (leds[0] >> 8) & 0xFF
-            b = leds[0] & 0xFF
-            self._rgb_color = (r, g, b)
-            _LOGGER.info("update led status %x  to (%x %x %x)" % (leds[0], r, g, b))
-        else:
-            _LOGGER.warning("Module not connected (check identification and USB cable)")
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         self._is_on = True

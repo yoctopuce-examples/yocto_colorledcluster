@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 import voluptuous as vol
+from yoctolib.yocto_api_aio import YAPI, YAPIContext, YHub, YRefParam
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_URL
@@ -13,8 +14,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
-from yoctolib.yocto_api_aio import YAPI, YRefParam, YHub
-from yoctolib.yocto_colorledcluster_aio import YColorLedCluster
 
 _LOGGER = logging.getLogger(DOMAIN)
 
@@ -28,39 +27,29 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 async def validate_config(url: str) -> dict:
     _LOGGER.info("Use Yoctolib version %s" % YAPI.GetAPIVersion())
+    yctx = YAPIContext()
+
     errmsg = YRefParam()
     _LOGGER.debug("Register hub %s", url)
-    yres = await YAPI.TestHub(url, 5000, errmsg)
+    yres = await yctx.TestHub(url, 5000, errmsg)
     if yres != YAPI.SUCCESS:
         return {"error": errmsg.value}
 
-    yres = await YAPI.RegisterHub(url, errmsg)
+    yres = await yctx.RegisterHub(url, errmsg)
     if yres != YAPI.SUCCESS:
         return {"error": errmsg.value}
-    leds = []
-    _LOGGER.debug(
-        "List color leds:",
-    )
-    l = YColorLedCluster.FirstColorLedCluster()
-    while l is not None:
-        hwid = await l.get_hardwareId()
-        _LOGGER.debug("- %s", hwid)
-        leds.append(hwid)
-        l = l.nextColorLedCluster()
-    # fixme handle multiples hub and usb
 
-    serial = ""
-    hub = YHub.FirstHubInUse()
+    hub = YHub.FirstHubInUseInContext(yctx)
     while hub is not None:
         if await hub.get_registeredUrl() == url:
             serial = await hub.get_serialNumber()
-            break
+            return {"hub": serial}
         hub = hub.nextHubInUse()
-    return {"leds": leds, "hub": serial}
+    return {"error": "No YHub matching " + url}
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for yxcv."""
+    """Handle a config flow for yoctopuce."""
 
     VERSION = 1
 
@@ -74,10 +63,14 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 res = await validate_config(user_input[CONF_URL])
                 if "error" in res:
                     errors["base"] = res["error"]
-                elif len(res["leds"]) > 0:
-                    return self.async_create_entry(title=res["hub"], data=user_input)
                 else:
-                    errors["base"] = "No ColorLed found on " + user_input[CONF_URL]
+                    await self.async_set_unique_id(res["hub"])
+                    # Abort the flow if a config entry with the same unique ID exists
+                    self._abort_if_unique_id_configured()
+
+                    return self.async_create_entry(
+                        title="Hub " + res["hub"], data=user_input
+                    )
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"

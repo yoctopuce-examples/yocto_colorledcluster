@@ -1,4 +1,4 @@
-"""Yoctopuce ColorLedCluster Integration"""
+"""Yoctopuce ColorLedCluster Integration."""
 
 from __future__ import annotations
 
@@ -8,24 +8,25 @@ from homeassistant.core import HomeAssistant
 
 from .hub import Hub
 
-PLATFORMS: list[Platform] = [Platform.LIGHT]
+PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.TEXT]
 
 type HubConfigEntry = ConfigEntry[Hub]
 
 
-# TODO Update entry annotation
-async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yoctopuce Color LEDs from a config entry."""
 
     hub = Hub(hass, entry.data["url"])
     if not await hub.test_connection():
         return False
     entry.runtime_data = hub
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    res: bool =await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await entry.runtime_data.stop_connection()
+    return res
