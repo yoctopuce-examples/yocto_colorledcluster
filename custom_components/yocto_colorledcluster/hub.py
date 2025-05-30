@@ -14,6 +14,10 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(DOMAIN)
 
 
+def debugLog(line: str) -> None:
+    _LOGGER.debug(line.rstrip())
+
+
 class Hub:
     """Dummy hub for Hello World example."""
 
@@ -46,6 +50,7 @@ class Hub:
         _LOGGER.info("Use Yoctolib version %s" % self.yctx.GetAPIVersion())  # noqa: G002, UP031
         errmsg = YRefParam()
         _LOGGER.debug("Register hub %s", self._url)
+        self.yctx.RegisterLogFunction(debugLog)
         res = await self.yctx.RegisterHub(self._url, errmsg)
         if res == YAPI.DOUBLE_ACCES:
             _LOGGER.warning("RegisterHub warning :" + errmsg.value)
@@ -66,6 +71,7 @@ class Hub:
         d: YDisplay | None = YDisplay.FirstDisplayInContext(self.yctx)
         while d is not None:
             hwid = await d.get_hardwareId()
+            await d.resetAll()
             self.disp.append(hwid)
             d = d.nextDisplay()
         self.online = True
@@ -78,7 +84,7 @@ class Hub:
             _LOGGER.debug("Set %s to color 0x%x" % (hwid, rgb_color))
             await yled.rgb_move(0, nbled, rgb_color, 1000)
         else:
-            _LOGGER.warning("Module %s not offline" % hwid)
+            _LOGGER.warning("Module %s is offline" % hwid)
 
     async def set_hsl_color(self, hwid: str, hsl_color) -> None:
         yled = YColorLedCluster.FindColorLedClusterInContext(self.yctx, hwid)
@@ -87,21 +93,25 @@ class Hub:
             _LOGGER.debug("Set %s to color 0x%x" % (hwid, hsl_color))
             await yled.hsl_move(0, nbled, hsl_color, 1000)
         else:
-            _LOGGER.warning("Module %s not offline" % hwid)
+            _LOGGER.warning("Module %s is offline" % hwid)
 
     async def set_text(self, hwid: str, text: str) -> None:
         disp: YDisplay = YDisplay.FindDisplayInContext(self.yctx, hwid)
         if await disp.isOnline():
             # display clean up
-            await disp.resetAll()
             # retrieve the display size
             w: int = await disp.get_displayWidth()
             h: int = await disp.get_displayHeight()
             # retrieve the first layer
-            l0: YDisplayLayer = await disp.get_displayLayer(0)
-            await l0.clear()
+            l1: YDisplayLayer = await disp.get_displayLayer(1)
+            await l1.clear()
+            if len(text) < 8:
+                await l1.selectFont("Large.yfm")
+            else:
+                await l1.selectFont("Medium.yfm")
             # display a text in the middle of the screen
             _LOGGER.debug("Set %s to %s" % (hwid, text))
-            await l0.drawText(w // 2, h // 2, YDisplayLayer.ALIGN.CENTER, text)
+            await l1.drawText(w // 2, h // 2, YDisplayLayer.ALIGN.CENTER, text)
+            await disp.swapLayerContent(1, 0)
         else:
-            _LOGGER.warning("Module %s not offline" % hwid)
+            _LOGGER.warning("Module %s is offline" % hwid)
