@@ -105,6 +105,7 @@ class Hub:
             # retrieve the first layer
             l1: YDisplayLayer = await disp.get_displayLayer(1)
             await l1.clear()
+            await l1.hide()
             if len(text) < 8:
                 await l1.selectFont("Large.yfm")
             else:
@@ -112,6 +113,7 @@ class Hub:
             # display a text in the middle of the screen
             _LOGGER.debug("Set %s to %s" % (hwid, text))
             await l1.drawText(w // 2, h // 2, YDisplayLayer.ALIGN.CENTER, text)
-            await disp.swapLayerContent(1, 0)
+            await disp.swapLayerContent(1, 2)
         else:
             _LOGGER.warning("Module %s is offline" % hwid)
+
