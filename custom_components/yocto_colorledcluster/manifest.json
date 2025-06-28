@@ -11,8 +11,8 @@
     "integration_type":"hub",
     "homekit": {},
     "iot_class": "local_polling",
-    "requirements": ["yoctolib==2.1.7205"],
-    "version":"1.1.6",
+    "requirements": ["yoctolib==2.1.7725"],
+    "version":"1.1.7",
     "ssdp": [],
     "zeroconf": []
 }
